@@ -1,5 +1,6 @@
 package com.jargetzi.app;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBarActivity;
@@ -8,21 +9,52 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.Toast;
 
 public class MainActivity extends ActionBarActivity {
+    private Button mMonitorButton;
+    private Button mRangingButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mMonitorButton = (Button) findViewById(R.id.button_monitor);
+        mMonitorButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(getBaseContext(), "monitoring", Toast.LENGTH_SHORT).show();
+                CallMonitor();
+            }
+        });
+
+        mRangingButton = (Button) findViewById(R.id.button_ranging);
+        mRangingButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(getBaseContext(), "ranging", Toast.LENGTH_SHORT).show();
+                CallRanging();
+            }
+        });
+        /*
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.container, new PlaceholderFragment())
                     .commit();
-        }
+        }*/
     }
 
+    private void CallMonitor() {
+        Intent intent = new Intent(this, MonitoringActivity.class);
+        startActivity(intent);
+    }
+
+    private void CallRanging() {
+        Intent intent = new Intent(this, RangingActivity.class);
+        startActivity(intent);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
