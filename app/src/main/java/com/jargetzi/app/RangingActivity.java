@@ -1,10 +1,14 @@
 package com.jargetzi.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
+import android.view.View;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 
 import com.radiusnetworks.ibeacon.IBeacon;
 import com.radiusnetworks.ibeacon.IBeaconConsumer;
@@ -15,19 +19,24 @@ import com.radiusnetworks.ibeacon.Region;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 public class RangingActivity extends Activity implements IBeaconConsumer {
     protected static final String TAG = "RangingActivity";
     private IBeaconManager iBeaconManager = IBeaconManager.getInstanceForApplication(this);
     public ListView mListView;
-    private List<Map<String, String>> mDevices = new ArrayList<Map<String, String>>();
+    //private List<Map<String, String>> mDevices = new ArrayList<Map<String, String>>();
     public List<iBeaconInfo> mIBeaconInfo = new ArrayList<iBeaconInfo>();
+    private ProgressBar mProgressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ranging);
+        verifyBluetooth();
+
+        mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
+        mProgressBar.setVisibility(View.VISIBLE);
+
 
         iBeaconManager.bind(this);
     }
@@ -68,6 +77,7 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
                             mListView = (ListView)findViewById(android.R.id.list);
 
                             mListView.setAdapter(adapter1);
+                            mProgressBar.setVisibility(View.INVISIBLE);
                         }
                     });
                 }
@@ -79,7 +89,7 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
         } catch (RemoteException e) {   }
     }
 
-    public void testPrint() {
+    /*public void testPrint() {
         List<iBeaconInfo> devices = new ArrayList<iBeaconInfo>();
         for(int i = 0;i<3;i++){
             iBeaconInfo device = new iBeaconInfo("uuid" + i,"distance","major","minor");
@@ -89,5 +99,43 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
         customListAdapter adapter1 = new customListAdapter(this,R.layout.listview_item_row, devices);
         mListView = (ListView)findViewById(android.R.id.list);
         mListView.setAdapter(adapter1);
+    }*/
+
+    private void verifyBluetooth() {
+
+        try {
+            if (!IBeaconManager.getInstanceForApplication(this).checkAvailability()) {
+                final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Bluetooth not enabled");
+                builder.setMessage("Please enable bluetooth in settings and restart this application.");
+                builder.setPositiveButton(android.R.string.ok, null);
+                builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        finish();
+                        System.exit(0);
+                    }
+                });
+                builder.show();
+            }
+        }
+        catch (RuntimeException e) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Bluetooth LE not available");
+            builder.setMessage("Sorry, this device does not support Bluetooth LE.");
+            builder.setPositiveButton(android.R.string.ok, null);
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    finish();
+                    System.exit(0);
+                }
+
+            });
+            builder.show();
+
+        }
+
     }
 }
