@@ -2,9 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.jargetzi.app" >
 
-    <uses-permission android:name="android.permission.BLUETOOTH"/>
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
-    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -27,6 +30,14 @@
         <activity
             android:name="com.jargetzi.app.MonitoringActivity"
             android:label="@string/title_activity_monitoring" >
+        </activity>
+        <activity
+            android:name="com.jargetzi.app.RegisterDevice"
+            android:label="@string/title_activity_register_device" >
+        </activity>
+        <activity
+            android:name="com.jargetzi.app.RangingMarkedActivity"
+            android:label="@string/title_activity_ranging_marked" >
         </activity>
     </application>
 

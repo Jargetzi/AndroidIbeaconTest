@@ -30,8 +30,10 @@ import java.io.InputStreamReader;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
     protected static final String TAG = "RangingActivity";
@@ -39,7 +41,10 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
     public ListView mListView;
     //private List<Map<String, String>> mDevices = new ArrayList<Map<String, String>>();
     public List<iBeaconInfo> mIBeaconInfo = new ArrayList<iBeaconInfo>();
-    private List<iBeaconInfo> mSavedDevices = new ArrayList<iBeaconInfo>();
+    //private List<iBeaconInfo> mSavedDevices = new ArrayList<iBeaconInfo>();
+    private List<HashMap<String,iBeaconInfo>> mHashToBeacon = new ArrayList<HashMap<String, iBeaconInfo>>();
+    private HashMap<String,String> mHashNicknames = new HashMap<String, String>();
+    private List<String> mActiveBeacons = new ArrayList<String>();
     private ProgressBar mProgressBar;
     private boolean firstTime;
 
@@ -62,13 +67,13 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
         getSavedDevices();
 
         //  This is how long a scan will be, 1.1 seconds for back and fore ground
-        iBeaconManager.setBackgroundScanPeriod(1100l);
-        iBeaconManager.setForegroundScanPeriod(1100l);
+        //iBeaconManager.setBackgroundScanPeriod(1100l);
+        //iBeaconManager.setForegroundScanPeriod(1100l);
 
 
         //  this is time between each scan background, 15 mins, foreground 1 second
-        iBeaconManager.setBackgroundBetweenScanPeriod(900000l);
-        iBeaconManager.setForegroundBetweenScanPeriod(1000l);
+        //iBeaconManager.setBackgroundBetweenScanPeriod(900000l);
+        //iBeaconManager.setForegroundBetweenScanPeriod(1000l);
 
         iBeaconManager.bind(this);
 
@@ -100,26 +105,78 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
                     //Log.i(TAG, "The first iBeacon I see is about " + iBeacons.iterator().next().getAccuracy() + " meters away.");
 
                     List<iBeaconInfo> devices = new ArrayList<iBeaconInfo>();
+                    mHashToBeacon.clear();
+
                     for (IBeacon iBeacon : iBeacons) {
-                        //iBeacon.requestData(this);
-                        String displayString = iBeacon.getProximityUuid() + " " + iBeacon.getMajor() + " " + iBeacon.getMinor() + "\n";
-                        //displayTableRow(iBeacon, displayString, false);
+
+                        //String displayString = iBeacon.getProximityUuid() + " " + iBeacon.getMajor() + " " + iBeacon.getMinor() + "\n";
+
 
                         String uuid = iBeacon.getProximityUuid();
                         double distance = iBeacon.getAccuracy();
                         int major = iBeacon.getMajor();
                         int minor = iBeacon.getMinor();
 
-                        iBeaconInfo device = new iBeaconInfo(uuid,distance + " meters","major " + major, "minor " + minor);
-                        devices.add(device);
+                        String hash = hashFunction(uuid.toUpperCase(),major + "",minor + "");
+                        hash = hash.substring(0,10);
+                        //Log.i(TAG,"this is the hash: " + hash);
+                        if(mHashNicknames.containsKey(hash)) {
+                            //  If saved file has this device, add it mIBeaconInfo to be put in the adapter
+                            iBeaconInfo device = new iBeaconInfo(uuid,distance + " meters","major " + major, "minor " + minor);
+                            device.setNickname(mHashNicknames.get(hash));
+                            device.setHash(hash);
+                            devices.add(device);
 
-                        Log.i(TAG, "displayString: " + displayString);
+                            //  Keep track of the active beacons
+                            if(!mHashToBeacon.contains(hash)) {
+                                HashMap<String,iBeaconInfo> tempMap = new HashMap<String, iBeaconInfo>();
+                                //Log.v(TAG,"This is hash and nickname" + hash + device.getNickname());
+                                tempMap.put(hash,device);
+                                mHashToBeacon.add(tempMap);
+                            }
+                        }
+
                     }
+
                     mIBeaconInfo = devices;
+
+                    //Log.v(TAG,mIBeaconInfo.toString());
+                    //  If mActiveBeacons is not the same size as mHashNicknames, then show that it hasn't been reached
+                    if(mIBeaconInfo.size() != mHashNicknames.size()) {
+                        //Log.v(TAG,"in here");
+                        //Log.v(TAG,"Size of mHashNicknames: " + mHashNicknames.size());
+                        HashMap<String,String> nonActiveSavedDevices;
+
+                        nonActiveSavedDevices = new HashMap<String, String>(mHashNicknames);
+                        //  Loop through to get a hashmap of devices that are saved but we didn't get info for
+                        for(int i = 0; i< mIBeaconInfo.size(); i++) {
+                            iBeaconInfo temp = mIBeaconInfo.get(i);
+                            nonActiveSavedDevices.remove(temp.getHash());
+                            //Log.v(TAG,"This is being removed: " + temp.getNickname());
+                        }
+
+                        //  Add the nonActiveSavedDevices to mIBeaconInfo
+                        if(nonActiveSavedDevices.size()>0) {
+                            Iterator iter = nonActiveSavedDevices.entrySet().iterator();
+                            while(iter.hasNext()) {
+                                Map.Entry pairs = (Map.Entry)iter.next();
+
+                                iBeaconInfo device = new iBeaconInfo();
+                                device.setNickname(pairs.getValue().toString());
+                                device.setHash(pairs.getKey().toString());
+                                device.setDistance(getString(R.string.not_in_range_txt));
+                                mIBeaconInfo.add(device);
+                                //Log.v(TAG,"Adding this to mIBeaconInfo: " + device.getNickname());
+                            }
+                        }
+
+                        //Log.v(TAG,"Size of mHashNicknames: " + mHashNicknames.size());
+                    }
+
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-
+                            /*
                             customListAdapter adapter1 = new customListAdapter(RangingMarkedActivity.this,R.layout.listview_item_row, mIBeaconInfo);
                             if(firstTime) {
                                 View header = (View)getLayoutInflater().inflate(R.layout.listview_header_row,null);
@@ -127,6 +184,14 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
                                 firstTime = false;
                             }
                             mListView.setAdapter(adapter1);
+                            */
+                            customMarkedListAdapter adapter2 = new customMarkedListAdapter(RangingMarkedActivity.this,R.layout.listview_item_row_marked,mIBeaconInfo);
+                            if(firstTime) {
+                                View header = (View)getLayoutInflater().inflate(R.layout.listview_header_row,null);
+                                mListView.addHeaderView(header);
+                                firstTime = false;
+                            }
+                            mListView.setAdapter(adapter2);
 
                             mProgressBar.setVisibility(View.INVISIBLE);
 
@@ -254,22 +319,20 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
             while( iter.hasNext()) {
 
                 String hash = iter.next();
-                iBeaconInfo tempInfo = new iBeaconInfo();
+
                 try {
-                    //Log.v(TAG,"here");
                     JSONObject tempObject = (JSONObject) jsonObject.get(hash);
-                    //Log.v(TAG,jsonObject.toString());
-                    tempInfo.setHash(hash);
-                    tempInfo.setNickname(tempObject.getString("nickname"));
-                    //tempInfo.setDistance(tempObject.getString("distance"));
-                    tempInfo.setDistance("? Meters");
-                    //Log.v(TAG,"adding " + tempObject.getString("nickname"));
-                    devices.add(tempInfo);
+
+                    String nickname = tempObject.getString("nickname");
+                    //HashMap<String,String> tempMap = new HashMap<String, String>();
+                    //tempMap.put(hash,nickname);
+                    mHashNicknames.put(hash,nickname);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }
-            mSavedDevices = devices;
+
+            Log.v(TAG,mHashNicknames.toString());
         }
     }
 

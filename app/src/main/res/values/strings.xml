@@ -8,5 +8,13 @@
     <string name="title_activity_ranging">RangingActivity</string>
     <string name="monitor_button_text">Monitor</string>
     <string name="ranging_button_text">Ranging</string>
+    <string name="title_activity_register_device">RegisterDevice</string>
+    <string name="register_password">Password</string>
+    <string name="register_nickname">Nickname</string>
+    <string name="my_devices_file">my_devices_file</string>
+    <string name="button_add_text">add</string>
+    <string name="title_activity_ranging_marked">RangingMarkedActivity</string>
+    <string name="marked_button_text">Marked</string>
+    <string name="not_in_range_txt">Device is not in Range</string>
 
 </resources>

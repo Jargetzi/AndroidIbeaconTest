@@ -2,30 +2,51 @@ package com.jargetzi.app;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBarActivity;
-import android.view.LayoutInflater;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ListView;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class MainActivity extends ActionBarActivity {
+    protected static final String TAG = "RangingActivity";
     private Button mMonitorButton;
     private Button mRangingButton;
+    private Button mMarkedButton;
+    public List<iBeaconInfo> mIBeaconInfo = new ArrayList<iBeaconInfo>();
+    private ListView mListView;
+    private boolean firstTime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mListView = (ListView) findViewById(R.id.main_list_view);
+        firstTime = true;
+
+
         mMonitorButton = (Button) findViewById(R.id.button_monitor);
         mMonitorButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 //Toast.makeText(getBaseContext(), "monitoring", Toast.LENGTH_SHORT).show();
-                CallMonitor();
+                //CallMonitor();
+                deleteFile();
             }
         });
 
@@ -37,12 +58,40 @@ public class MainActivity extends ActionBarActivity {
                 CallRanging();
             }
         });
+
+        mMarkedButton = (Button)findViewById(R.id.button_marked);
+        mMarkedButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //  call RangingMarkedActivity
+                CallMarked();
+            }
+
+        });
+
+        setMarkedDevices();
         /*
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.container, new PlaceholderFragment())
                     .commit();
         }*/
+    }
+
+    @Override
+    protected void onPause(){
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        setMarkedDevices();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
     }
 
     private void CallMonitor() {
@@ -52,6 +101,11 @@ public class MainActivity extends ActionBarActivity {
 
     private void CallRanging() {
         Intent intent = new Intent(this, RangingActivity.class);
+        startActivity(intent);
+    }
+
+    private void CallMarked() {
+        Intent intent = new Intent(this, RangingMarkedActivity.class);
         startActivity(intent);
     }
 
@@ -75,20 +129,84 @@ public class MainActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
+    public void setMarkedDevices() {
 
-        public PlaceholderFragment() {
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject = new JSONObject(readFromFile());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        List<iBeaconInfo> devices = new ArrayList<iBeaconInfo>();
+        Iterator<String> iter = jsonObject.keys();
+        while( iter.hasNext()) {
+
+            String hash = iter.next();
+            iBeaconInfo tempInfo = new iBeaconInfo();
+            try {
+                //Log.v(TAG,"here");
+                JSONObject tempObject = (JSONObject) jsonObject.get(hash);
+                //Log.v(TAG,jsonObject.toString());
+                tempInfo.setHash(hash);
+                tempInfo.setNickname(tempObject.getString("nickname"));
+                //tempInfo.setDistance(tempObject.getString("distance"));
+                tempInfo.setDistance("? Meters");
+                //Log.v(TAG,"adding " + tempObject.getString("nickname"));
+                devices.add(tempInfo);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
 
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-            return rootView;
+        mIBeaconInfo = devices;
+        //Toast.makeText(getBaseContext(),devices.toString(), Toast.LENGTH_SHORT).show();
+
+        //Log.v(TAG,"testing"  + mIBeaconInfo.size());
+        //  new adapter
+        customMarkedListAdapter adapter2 = new customMarkedListAdapter(MainActivity.this,R.layout.listview_item_row_marked,mIBeaconInfo);
+        if(firstTime) {
+            View header = (View)getLayoutInflater().inflate(R.layout.listview_header_row,null);
+            mListView.addHeaderView(header);
+            firstTime = false;
         }
+        mListView.setAdapter(adapter2);
+
+
+        //Toast.makeText(getBaseContext(),readFromFile(),Toast.LENGTH_LONG).show();
     }
 
+
+    public String readFromFile() {
+        String ret="";
+        try {
+            InputStream inputStream = openFileInput(getString(R.string.my_devices_file));
+            if( inputStream != null) {
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                String receiveString = "";
+                StringBuilder stringBuilder = new StringBuilder();
+
+                while ( (receiveString = bufferedReader.readLine()) != null ) {
+                    stringBuilder.append(receiveString);
+                }
+
+                inputStream.close();
+                ret = stringBuilder.toString();
+            }
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "File not found " + e.toString());
+        } catch(Exception e) {
+            Log.e(TAG, "Cannot read file: " + e.toString());
+        }
+        return ret;
+    }
+
+    public void deleteFile() {
+        String filename = getString(R.string.my_devices_file);
+        File dir = getFilesDir();
+        File file = new File(dir,filename);
+        file.delete();
+    }
 }
+
+

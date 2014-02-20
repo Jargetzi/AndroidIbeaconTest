@@ -2,6 +2,7 @@ package com.jargetzi.app;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -40,6 +41,7 @@ public class customMarkedListAdapter  extends ArrayAdapter<iBeaconInfo>{
             holder.nickname = (TextView)row.findViewById(R.id.list_item_marked_nickname);
             holder.distance = (TextView)row.findViewById(R.id.list_item_marked_distance);
             row.setTag(holder);
+
         }
         else {
             holder = (iBeaconHolder)row.getTag();
@@ -49,6 +51,11 @@ public class customMarkedListAdapter  extends ArrayAdapter<iBeaconInfo>{
 
         holder.nickname.setText(info.nickname);
         holder.distance.setText(info.distance);
+
+        if(info.getDistance().equals(context.getString(R.string.not_in_range_txt))) {
+            row.setBackgroundColor(Color.YELLOW);
+            row.invalidate();
+        }
 
         return row;
     }
