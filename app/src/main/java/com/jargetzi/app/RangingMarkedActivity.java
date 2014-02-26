@@ -2,7 +2,9 @@ package com.jargetzi.app;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
@@ -24,7 +26,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.security.MessageDigest;
@@ -55,14 +59,14 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ranging_marked);
-        verifyBluetooth();
+        //verifyBluetooth();
 
         firstTime = true;
 
         mListView = (ListView)findViewById(R.id.marked_list);
 
         mProgressBar = (ProgressBar) findViewById(R.id.progressBar_marked);
-        mProgressBar.setVisibility(View.VISIBLE);
+        //mProgressBar.setVisibility(View.VISIBLE);
 
         getSavedDevices();
 
@@ -76,6 +80,12 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
         //iBeaconManager.setForegroundBetweenScanPeriod(1000l);
 
         iBeaconManager.bind(this);
+        if (!IBeaconManager.getInstanceForApplication(this).checkAvailability()) {
+            setMarkedDevices();
+        } else {
+            mProgressBar.setVisibility(View.VISIBLE);
+            iBeaconManager.bind(this);
+        }
 
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             //@Override
@@ -85,8 +95,7 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
                     String uuid = selectedBeacon.getUuid();
                     String major = selectedBeacon.getMajor();
                     String minor = selectedBeacon.getMinor();
-                    //Toast.makeText(getBaseContext(),"clicked "+arg2,Toast.LENGTH_SHORT ).show();
-                    //RegisterDeviceCall(uuid,major,minor);
+                    confirmDelete(selectedBeacon.getNickname(),selectedBeacon.getHash());
                 }
             }
         });
@@ -96,6 +105,19 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
         super.onDestroy();
         iBeaconManager.unBind(this);
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        iBeaconManager.unBind(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        iBeaconManager.bind(this);
+    }
+
     @Override
     public void onIBeaconServiceConnect() {
         iBeaconManager.setRangeNotifier(new RangeNotifier() {
@@ -111,7 +133,6 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
 
                         //String displayString = iBeacon.getProximityUuid() + " " + iBeacon.getMajor() + " " + iBeacon.getMinor() + "\n";
 
-
                         String uuid = iBeacon.getProximityUuid();
                         double distance = iBeacon.getAccuracy();
                         int major = iBeacon.getMajor();
@@ -119,7 +140,6 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
 
                         String hash = hashFunction(uuid.toUpperCase(),major + "",minor + "");
                         hash = hash.substring(0,10);
-                        //Log.i(TAG,"this is the hash: " + hash);
                         if(mHashNicknames.containsKey(hash)) {
                             //  If saved file has this device, add it mIBeaconInfo to be put in the adapter
                             iBeaconInfo device = new iBeaconInfo(uuid,distance + " meters","major " + major, "minor " + minor);
@@ -130,7 +150,6 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
                             //  Keep track of the active beacons
                             if(!mHashToBeacon.contains(hash)) {
                                 HashMap<String,iBeaconInfo> tempMap = new HashMap<String, iBeaconInfo>();
-                                //Log.v(TAG,"This is hash and nickname" + hash + device.getNickname());
                                 tempMap.put(hash,device);
                                 mHashToBeacon.add(tempMap);
                             }
@@ -140,11 +159,10 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
 
                     mIBeaconInfo = devices;
 
-                    //Log.v(TAG,mIBeaconInfo.toString());
+
                     //  If mActiveBeacons is not the same size as mHashNicknames, then show that it hasn't been reached
                     if(mIBeaconInfo.size() != mHashNicknames.size()) {
-                        //Log.v(TAG,"in here");
-                        //Log.v(TAG,"Size of mHashNicknames: " + mHashNicknames.size());
+
                         HashMap<String,String> nonActiveSavedDevices;
 
                         nonActiveSavedDevices = new HashMap<String, String>(mHashNicknames);
@@ -166,11 +184,11 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
                                 device.setHash(pairs.getKey().toString());
                                 device.setDistance(getString(R.string.not_in_range_txt));
                                 mIBeaconInfo.add(device);
-                                //Log.v(TAG,"Adding this to mIBeaconInfo: " + device.getNickname());
+
                             }
                         }
 
-                        //Log.v(TAG,"Size of mHashNicknames: " + mHashNicknames.size());
+
                     }
 
                     runOnUiThread(new Runnable() {
@@ -239,8 +257,8 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
                 builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
                     @Override
                     public void onDismiss(DialogInterface dialog) {
-                        finish();
-                        System.exit(0);
+                        //finish();
+                        //System.exit(0);
                     }
                 });
                 builder.show();
@@ -255,8 +273,8 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
 
                 @Override
                 public void onDismiss(DialogInterface dialog) {
-                    finish();
-                    System.exit(0);
+                    //finish();
+                    //System.exit(0);
                 }
 
             });
@@ -265,20 +283,6 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
         }
 
     }
-
-    /*
-    public void RegisterDeviceCall (String uuid, String major, String minor) {
-        major = major.substring(6);
-        minor = minor.substring(6);
-        uuid = uuid.toUpperCase();
-        Intent intent = new Intent(this,RegisterDevice.class);
-        intent.putExtra("uuid",uuid);
-        intent.putExtra("major",major);
-        intent.putExtra("minor",minor);
-        startActivity(intent);
-    }
-    */
-
 
     public String readFromFile() {
         String ret="";
@@ -355,5 +359,93 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
         } catch(Exception ex){
             throw new RuntimeException(ex);
         }
+    }
+
+    private void deleteItem(String hash) {
+        String filename = getString(R.string.my_devices_file);
+        JSONObject jsonObject = new JSONObject();
+        File dir = getFilesDir();
+        File file = new File(dir,filename);
+        if(file.exists()) {
+            try {
+                jsonObject = new JSONObject(readFromFile());
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            if (jsonObject.has(hash)) {
+                //	this device is already saved
+                jsonObject.remove(hash);
+                String saveBeaconInfo = jsonObject.toString();
+                //Log.v(TAG,"This is saved "+ saveBeaconInfo);
+                FileOutputStream outputStream;
+                try {
+                    outputStream = openFileOutput(filename, Context.MODE_PRIVATE);	//was append
+                    outputStream.write(saveBeaconInfo.getBytes());
+                    outputStream.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(getBaseContext(), "Failed to save", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+
+    private void confirmDelete (String nickname, final String hash) {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Delete " + nickname +"?");
+        builder.setMessage("Delete " +nickname + " from saved devices?");
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                Toast.makeText(getBaseContext(),"delete",Toast.LENGTH_SHORT).show();
+                deleteItem(hash);
+                //  After Save go to main page
+                Intent intent = new Intent(RangingMarkedActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                Toast.makeText(getBaseContext(),"cancel",Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.show();
+
+    }
+
+    public void setMarkedDevices() {
+
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject = new JSONObject(readFromFile());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        List<iBeaconInfo> devices = new ArrayList<iBeaconInfo>();
+        Iterator<String> iter = jsonObject.keys();
+        while( iter.hasNext()) {
+            String hash = iter.next();
+            iBeaconInfo tempInfo = new iBeaconInfo();
+            try {
+                JSONObject tempObject = (JSONObject) jsonObject.get(hash);
+                tempInfo.setHash(hash);
+                tempInfo.setNickname(tempObject.getString("nickname"));
+                tempInfo.setDistance("? Meters");
+                devices.add(tempInfo);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        mIBeaconInfo = devices;
+        //  new adapter
+        customMarkedListAdapter adapter2 = new customMarkedListAdapter(RangingMarkedActivity.this,R.layout.listview_item_row_marked,mIBeaconInfo);
+        if(firstTime) {
+            View header = (View)getLayoutInflater().inflate(R.layout.listview_header_row,null);
+            mListView.addHeaderView(header);
+            firstTime = false;
+        }
+        mListView.setAdapter(adapter2);
     }
 }

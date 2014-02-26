@@ -41,7 +41,7 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ranging);
-        verifyBluetooth();
+        //verifyBluetooth();
 
         firstTime = true;
 
@@ -51,13 +51,13 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
         mProgressBar.setVisibility(View.VISIBLE);
 
         //  This is how long a scan will be, 1.1 seconds for back and fore ground
-        iBeaconManager.setBackgroundScanPeriod(1100l);
+        //iBeaconManager.setBackgroundScanPeriod(1100l);
         iBeaconManager.setForegroundScanPeriod(1100l);
 
 
         //  this is time between each scan background, 15 mins, foreground 1 second
-        iBeaconManager.setBackgroundBetweenScanPeriod(900000l);
-        iBeaconManager.setForegroundBetweenScanPeriod(1000l);
+        //iBeaconManager.setBackgroundBetweenScanPeriod(900000l);
+        iBeaconManager.setForegroundBetweenScanPeriod(1100l);
 
         iBeaconManager.bind(this);
 
@@ -80,6 +80,19 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
         super.onDestroy();
         iBeaconManager.unBind(this);
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        iBeaconManager.unBind(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        iBeaconManager.bind(this);
+    }
+
     @Override
     public void onIBeaconServiceConnect() {
         iBeaconManager.setRangeNotifier(new RangeNotifier() {

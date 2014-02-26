@@ -1,14 +1,15 @@
 package com.jargetzi.app;
 
+import android.app.TabActivity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TabHost;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends TabActivity {
     protected static final String TAG = "RangingActivity";
     private Button mMonitorButton;
     private Button mRangingButton;
@@ -36,6 +37,7 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        /*
         mListView = (ListView) findViewById(R.id.main_list_view);
         firstTime = true;
 
@@ -70,6 +72,29 @@ public class MainActivity extends ActionBarActivity {
         });
 
         setMarkedDevices();
+        */
+
+        //  This is for the navigation tabs
+
+        TabHost tabHost = getTabHost();
+
+        //  Tab for RangingMarkedActivity
+        TabHost.TabSpec rangingMarked = tabHost.newTabSpec("My iBeacons");
+        rangingMarked.setIndicator("My iBeacons");
+        Intent rangingMarkedIntent = new Intent(this,RangingMarkedActivity.class);
+        rangingMarked.setContent(rangingMarkedIntent);
+
+        //  Tab for RangingActivity
+        TabHost.TabSpec ranging = tabHost.newTabSpec("All iBeacons");
+        ranging.setIndicator("All iBeacons");
+        Intent rangingIntent = new Intent(this,RangingActivity.class);
+        ranging.setContent(rangingIntent);
+
+        //  Add all TabSpec to TabHost
+        tabHost.addTab(rangingMarked);
+        tabHost.addTab(ranging);
+
+
         /*
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
@@ -86,7 +111,7 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        setMarkedDevices();
+        //setMarkedDevices();
     }
 
     @Override
@@ -140,28 +165,19 @@ public class MainActivity extends ActionBarActivity {
         List<iBeaconInfo> devices = new ArrayList<iBeaconInfo>();
         Iterator<String> iter = jsonObject.keys();
         while( iter.hasNext()) {
-
             String hash = iter.next();
             iBeaconInfo tempInfo = new iBeaconInfo();
             try {
-                //Log.v(TAG,"here");
                 JSONObject tempObject = (JSONObject) jsonObject.get(hash);
-                //Log.v(TAG,jsonObject.toString());
                 tempInfo.setHash(hash);
                 tempInfo.setNickname(tempObject.getString("nickname"));
-                //tempInfo.setDistance(tempObject.getString("distance"));
                 tempInfo.setDistance("? Meters");
-                //Log.v(TAG,"adding " + tempObject.getString("nickname"));
                 devices.add(tempInfo);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
-
         mIBeaconInfo = devices;
-        //Toast.makeText(getBaseContext(),devices.toString(), Toast.LENGTH_SHORT).show();
-
-        //Log.v(TAG,"testing"  + mIBeaconInfo.size());
         //  new adapter
         customMarkedListAdapter adapter2 = new customMarkedListAdapter(MainActivity.this,R.layout.listview_item_row_marked,mIBeaconInfo);
         if(firstTime) {
@@ -170,9 +186,6 @@ public class MainActivity extends ActionBarActivity {
             firstTime = false;
         }
         mListView.setAdapter(adapter2);
-
-
-        //Toast.makeText(getBaseContext(),readFromFile(),Toast.LENGTH_LONG).show();
     }
 
 
