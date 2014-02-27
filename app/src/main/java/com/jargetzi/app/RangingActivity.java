@@ -52,12 +52,12 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
 
         //  This is how long a scan will be, 1.1 seconds for back and fore ground
         //iBeaconManager.setBackgroundScanPeriod(1100l);
-        iBeaconManager.setForegroundScanPeriod(1100l);
+        //iBeaconManager.setForegroundScanPeriod(1100l);
 
 
         //  this is time between each scan background, 15 mins, foreground 1 second
         //iBeaconManager.setBackgroundBetweenScanPeriod(900000l);
-        iBeaconManager.setForegroundBetweenScanPeriod(1100l);
+        //iBeaconManager.setForegroundBetweenScanPeriod(1100l);
 
         iBeaconManager.bind(this);
 
@@ -78,13 +78,17 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        iBeaconManager.unBind(this);
+        //iBeaconManager.unBind(this);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        iBeaconManager.unBind(this);
+        try {
+            iBeaconManager.unBind(this);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG,"Illegal Arguement Exception in RangingActivity: " + e);
+        }
     }
 
     @Override

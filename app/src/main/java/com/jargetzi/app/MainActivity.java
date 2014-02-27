@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TabHost;
+import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -73,6 +74,8 @@ public class MainActivity extends TabActivity {
 
         setMarkedDevices();
         */
+        Toast.makeText(getBaseContext(),"Working?", Toast.LENGTH_SHORT).show();
+        Log.v(TAG,"I should see this...");
 
         //  This is for the navigation tabs
 

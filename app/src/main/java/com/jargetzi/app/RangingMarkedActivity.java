@@ -73,6 +73,8 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
         //  This is how long a scan will be, 1.1 seconds for back and fore ground
         //iBeaconManager.setBackgroundScanPeriod(1100l);
         //iBeaconManager.setForegroundScanPeriod(1100l);
+        iBeaconManager.setForegroundScanPeriod(1500l);
+        iBeaconManager.setBackgroundBetweenScanPeriod(1100l);
 
 
         //  this is time between each scan background, 15 mins, foreground 1 second
@@ -103,13 +105,18 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        iBeaconManager.unBind(this);
+        //iBeaconManager.unBind(this);
     }
+
 
     @Override
     protected void onPause() {
         super.onPause();
-        iBeaconManager.unBind(this);
+        try {
+            iBeaconManager.unBind(this);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG,"This was caught " + e);
+        }
     }
 
     @Override
@@ -146,6 +153,8 @@ public class RangingMarkedActivity extends Activity implements IBeaconConsumer {
                             device.setNickname(mHashNicknames.get(hash));
                             device.setHash(hash);
                             devices.add(device);
+
+                            Log.v(TAG,uuid + " distance " + distance);
 
                             //  Keep track of the active beacons
                             if(!mHashToBeacon.contains(hash)) {

@@ -13,6 +13,11 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.parse.FunctionCallback;
+import com.parse.Parse;
+import com.parse.ParseCloud;
+import com.parse.ParseException;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -23,6 +28,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.security.MessageDigest;
+import java.util.HashMap;
 
 public class RegisterDevice extends Activity {
     protected static final String TAG = "RangingActivity";
@@ -37,6 +43,11 @@ public class RegisterDevice extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register_device);
 
+        //  Need this to interact with Parse Server
+
+        Parse.initialize(this, "gYJPKww2de65Qq5rDXXdp4C6fqZbvxFttbOqbyQg", "g5NbntohgJ2wQwNhWrEnG0nun5QrDulsDgQfTnHF");
+        //sPushService.setDefaultPushCallback(this, MainActivity.class);
+
         Intent intent = getIntent();
         String uuid = intent.getStringExtra("uuid");
         String major = intent.getStringExtra("major");
@@ -44,7 +55,7 @@ public class RegisterDevice extends Activity {
 
         mIbeaconInfo = new iBeaconInfo(uuid,null,major,minor);
 
-        String hash = hashFunction(uuid,major,minor);
+        final String hash = hashFunction(uuid,major,minor);
         final String subHash = hash.substring(0,10);
 
         mHash = (TextView)findViewById(R.id.register_device_hash);
@@ -57,17 +68,41 @@ public class RegisterDevice extends Activity {
             @Override
             public void onClick(View view) {
                 String password = String.valueOf(mInputPassword.getText());
-                String nickname = String.valueOf(mInputNickname.getText());
+                final String nickname = String.valueOf(mInputNickname.getText());
                 if(password.isEmpty() || nickname.isEmpty()) {
                     //  Did not supply required input parameters
                     Toast.makeText(getBaseContext(),"Need to supply a password and nickname",Toast.LENGTH_SHORT).show();
                 } else {
                     //  Validate password with Parse
-
+                    HashMap<String, Object> params = new HashMap<String, Object>();
+                    params.put("fullnameHash",hash);
+                    params.put("devicePassword",password);
+                    ParseCloud.callFunctionInBackground("registerDevice",params, new FunctionCallback<Object>() {
+                        public void done(Object o, ParseException e) {
+                            if (e == null) {
+                                // Got a response from cloud code
+                                //Toast.makeText(getBaseContext(),"clicked add and sent",Toast.LENGTH_SHORT).show();
+                                Log.v(TAG,o.toString());
+                                Log.v(TAG,hash);
+                                if(o.toString().equals("true")) {
+                                    Log.v(TAG,"success");
+                                    //  Save data to file
+                                    /*mIbeaconInfo.setNickname(nickname);
+                                    mIbeaconInfo.setHash(subHash);
+                                    addDevice();*/
+                                } else {
+                                    Toast.makeText(getBaseContext(),"Incorrect Password",Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                            else {
+                                Log.v(TAG,"This was the exception: "+ e.toString());
+                            }
+                        }
+                    });
                     //  Save data to file
-                    mIbeaconInfo.setNickname(nickname);
-                    mIbeaconInfo.setHash(subHash);
-                    addDevice();
+                    //mIbeaconInfo.setNickname(nickname);
+                    //mIbeaconInfo.setHash(subHash);
+                    //addDevice();
                 }
             }
         });
