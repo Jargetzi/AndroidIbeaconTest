@@ -1,82 +1,40 @@
 package com.jargetzi.app;
 
+import android.app.AlertDialog;
 import android.app.TabActivity;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
-import android.widget.ListView;
 import android.widget.TabHost;
 import android.widget.Toast;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.radiusnetworks.ibeacon.IBeaconManager;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 public class MainActivity extends TabActivity {
     protected static final String TAG = "RangingActivity";
+    public static boolean pause;
+    /*
     private Button mMonitorButton;
     private Button mRangingButton;
     private Button mMarkedButton;
     public List<iBeaconInfo> mIBeaconInfo = new ArrayList<iBeaconInfo>();
     private ListView mListView;
     private boolean firstTime;
+    */
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        verifyBluetooth();
 
-        /*
-        mListView = (ListView) findViewById(R.id.main_list_view);
-        firstTime = true;
-
-
-        mMonitorButton = (Button) findViewById(R.id.button_monitor);
-        mMonitorButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //Toast.makeText(getBaseContext(), "monitoring", Toast.LENGTH_SHORT).show();
-                //CallMonitor();
-                deleteFile();
-            }
-        });
-
-        mRangingButton = (Button) findViewById(R.id.button_ranging);
-        mRangingButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //Toast.makeText(getBaseContext(), "ranging", Toast.LENGTH_SHORT).show();
-                CallRanging();
-            }
-        });
-
-        mMarkedButton = (Button)findViewById(R.id.button_marked);
-        mMarkedButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //  call RangingMarkedActivity
-                CallMarked();
-            }
-
-        });
-
-        setMarkedDevices();
-        */
-        Toast.makeText(getBaseContext(),"Working?", Toast.LENGTH_SHORT).show();
-        Log.v(TAG,"I should see this...");
-
+        pause = false;
         //  This is for the navigation tabs
 
         TabHost tabHost = getTabHost();
@@ -93,17 +51,17 @@ public class MainActivity extends TabActivity {
         Intent rangingIntent = new Intent(this,RangingActivity.class);
         ranging.setContent(rangingIntent);
 
+        //  Tab for SettingsActivity
+        TabHost.TabSpec settings = tabHost.newTabSpec("Settings");
+        settings.setIndicator("Settings");
+        Intent settingsIntent = new Intent(this,SettingsActivity.class);
+        settings.setContent(settingsIntent);
+
         //  Add all TabSpec to TabHost
         tabHost.addTab(rangingMarked);
         tabHost.addTab(ranging);
+        tabHost.addTab(settings);
 
-
-        /*
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, new PlaceholderFragment())
-                    .commit();
-        }*/
     }
 
     @Override
@@ -122,21 +80,6 @@ public class MainActivity extends TabActivity {
         super.onSaveInstanceState(savedInstanceState);
     }
 
-    private void CallMonitor() {
-        Intent intent = new Intent(this, MonitoringActivity.class);
-        startActivity(intent);
-    }
-
-    private void CallRanging() {
-        Intent intent = new Intent(this, RangingActivity.class);
-        startActivity(intent);
-    }
-
-    private void CallMarked() {
-        Intent intent = new Intent(this, RangingMarkedActivity.class);
-        startActivity(intent);
-    }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         
@@ -153,75 +96,65 @@ public class MainActivity extends TabActivity {
         int id = item.getItemId();
         if (id == R.id.action_settings) {
             return true;
+        } else if(id == R.id.action_pause) {
+            pause = ! pause;
+            Toast.makeText(getBaseContext(), "pause: " + pause, Toast.LENGTH_SHORT).show();
+            return true;
+        } else if(id == R.id.action_delete_allseen) {
+            String file = getString(R.string.all_seen_devices_file);
+            deleteAFile(file);
+            Toast.makeText(getBaseContext(),"Deleting all seen file",Toast.LENGTH_SHORT).show();
+        } else if(id == R.id.action_test_call_rm) {
+            Intent intent = new Intent(this,RangingMarkedActivity.class);
+            startActivity(intent);
         }
         return super.onOptionsItemSelected(item);
     }
 
-    public void setMarkedDevices() {
-
-        JSONObject jsonObject = new JSONObject();
-        try {
-            jsonObject = new JSONObject(readFromFile());
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        List<iBeaconInfo> devices = new ArrayList<iBeaconInfo>();
-        Iterator<String> iter = jsonObject.keys();
-        while( iter.hasNext()) {
-            String hash = iter.next();
-            iBeaconInfo tempInfo = new iBeaconInfo();
-            try {
-                JSONObject tempObject = (JSONObject) jsonObject.get(hash);
-                tempInfo.setHash(hash);
-                tempInfo.setNickname(tempObject.getString("nickname"));
-                tempInfo.setDistance("? Meters");
-                devices.add(tempInfo);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-        mIBeaconInfo = devices;
-        //  new adapter
-        customMarkedListAdapter adapter2 = new customMarkedListAdapter(MainActivity.this,R.layout.listview_item_row_marked,mIBeaconInfo);
-        if(firstTime) {
-            View header = (View)getLayoutInflater().inflate(R.layout.listview_header_row,null);
-            mListView.addHeaderView(header);
-            firstTime = false;
-        }
-        mListView.setAdapter(adapter2);
-    }
-
-
-    public String readFromFile() {
-        String ret="";
-        try {
-            InputStream inputStream = openFileInput(getString(R.string.my_devices_file));
-            if( inputStream != null) {
-                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
-                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-                String receiveString = "";
-                StringBuilder stringBuilder = new StringBuilder();
-
-                while ( (receiveString = bufferedReader.readLine()) != null ) {
-                    stringBuilder.append(receiveString);
-                }
-
-                inputStream.close();
-                ret = stringBuilder.toString();
-            }
-        } catch (FileNotFoundException e) {
-            Log.e(TAG, "File not found " + e.toString());
-        } catch(Exception e) {
-            Log.e(TAG, "Cannot read file: " + e.toString());
-        }
-        return ret;
-    }
-
-    public void deleteFile() {
-        String filename = getString(R.string.my_devices_file);
+    public void deleteAFile(String fileName) {
+        String filename = fileName;
         File dir = getFilesDir();
         File file = new File(dir,filename);
         file.delete();
+    }
+
+    public boolean getPause() {
+        return pause;
+    }
+
+    private void verifyBluetooth() {
+        try {
+            if (!IBeaconManager.getInstanceForApplication(this).checkAvailability()) {
+                final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Bluetooth not enabled");
+                builder.setMessage("Please enable bluetooth in settings and restart this application.");
+                builder.setPositiveButton(android.R.string.ok, null);
+                builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        //finish();
+                        //System.exit(0);
+                    }
+                });
+                builder.show();
+            }
+        }
+        catch (RuntimeException e) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Bluetooth LE not available");
+            builder.setMessage("Sorry, this device does not support Bluetooth LE.");
+            builder.setPositiveButton(android.R.string.ok, null);
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    //finish();
+                    //System.exit(0);
+                }
+
+            });
+            builder.show();
+        }
     }
 }
 

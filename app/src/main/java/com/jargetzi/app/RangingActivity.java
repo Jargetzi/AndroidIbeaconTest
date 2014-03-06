@@ -1,10 +1,9 @@
 package com.jargetzi.app;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
@@ -61,20 +60,22 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ranging);
-        //verifyBluetooth();
-
         firstTime = true;
-
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         mListView = (ListView)findViewById(android.R.id.list);
 
         mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
-        if(MainActivity.pause == false) {
+        if(!IBeaconManager.getInstanceForApplication(this).checkAvailability()){
+            // Bluetooth not enabled
+            mProgressBar.setVisibility(View.INVISIBLE);
+            setSavedWithoutBT();
+        } else {
             mProgressBar.setVisibility(View.VISIBLE);
+            getSavedDevices();
+            iBeaconManager.bind(this);
         }
 
-        getSavedDevices();
 
-        iBeaconManager.bind(this);
 
 
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -100,6 +101,7 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
     @Override
     protected void onPause() {
         super.onPause();
+        if (iBeaconManager.isBound(this)) iBeaconManager.setBackgroundMode(this, true);
         try {
             iBeaconManager.unBind(this);
         } catch (IllegalArgumentException e) {
@@ -111,7 +113,10 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
     protected void onResume() {
         super.onResume();
         iBeaconManager.bind(this);
+        //if (iBeaconManager.isBound(this)) iBeaconManager.setBackgroundMode(this, false);
     }
+
+
 
     @Override
     public void onIBeaconServiceConnect() {
@@ -179,13 +184,11 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
                                 } else {
                                     mAdapter.notifyDataSetChanged();
                                 }
-                                //customListAdapter adapter1
-
-
                             }
-
                         }
                     });
+                } else {
+                    //  bluetooth enabled but no signals
                 }
             }
         });
@@ -215,42 +218,6 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
         getMenuInflater().inflate(R.menu.ranging, menu);
         return true;
     }
-
-    private void verifyBluetooth() {
-        try {
-            if (!IBeaconManager.getInstanceForApplication(this).checkAvailability()) {
-                final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setTitle("Bluetooth not enabled");
-                builder.setMessage("Please enable bluetooth in settings and restart this application.");
-                builder.setPositiveButton(android.R.string.ok, null);
-                builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
-                    @Override
-                    public void onDismiss(DialogInterface dialog) {
-                        finish();
-                        System.exit(0);
-                    }
-                });
-                builder.show();
-            }
-        }
-        catch (RuntimeException e) {
-            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle("Bluetooth LE not available");
-            builder.setMessage("Sorry, this device does not support Bluetooth LE.");
-            builder.setPositiveButton(android.R.string.ok, null);
-            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
-
-                @Override
-                public void onDismiss(DialogInterface dialog) {
-                    finish();
-                    System.exit(0);
-                }
-
-            });
-            builder.show();
-        }
-    }
-
 
     public void RegisterDeviceCall (String uuid, String major, String minor) {
         major = major.substring(6);
@@ -340,6 +307,8 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
                 }
             } else {
                 //  This has already been saved as a beacon we have seen
+                Toast.makeText(getBaseContext(),"no beacons in range",Toast.LENGTH_SHORT).show();
+                setSavedWithoutBT();
             }
 
         } catch (JSONException e) {
@@ -429,11 +398,25 @@ public class RangingActivity extends Activity implements IBeaconConsumer {
 
                 if(mActiveBeacons.containsKey(hash)) {
                     Log.v(TAG,"updating distance for " + hash);
-                    mEverySeenBeacon.get(i).setDistance(mActiveBeacons.get(hash));
+                    mEverySeenBeacon.get(i).setDistance(mActiveBeacons.get(hash) + " feet");
                 } else {
-                    mEverySeenBeacon.get(i).setDistance(String.valueOf(R.string.not_in_range_txt));
+                    Log.v(TAG,"no signal for " + hash);
+                    String msg = getString(R.string.not_in_range_txt);
+                    mEverySeenBeacon.get(i).setDistance(msg);
                 }
             }
         }
+    }
+
+    public void setSavedWithoutBT() {
+        getSavedDevices();
+        mAdapter = new customListAdapter(RangingActivity.this, R.layout.listview_item_row, mEverySeenBeacon); //  was mIBeaconInfo
+        if (firstTime) {
+            View header = (View) getLayoutInflater().inflate(R.layout.listview_header_row, null);
+            mListView.addHeaderView(header);
+            firstTime = false;
+        }
+        mListView.setAdapter(mAdapter);
+        mProgressBar.setVisibility(View.INVISIBLE);
     }
 }

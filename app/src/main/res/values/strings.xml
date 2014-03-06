@@ -12,9 +12,12 @@
     <string name="register_password">Password</string>
     <string name="register_nickname">Nickname</string>
     <string name="my_devices_file">my_devices_file</string>
+    <string name="all_seen_devices_file">all_seen_devices_file</string>
     <string name="button_add_text">add</string>
     <string name="title_activity_ranging_marked">RangingMarkedActivity</string>
     <string name="marked_button_text">Marked</string>
     <string name="not_in_range_txt">Device is not in Range</string>
+    <string name="action_pause">Pause</string>
+    <string name="title_activity_settings">Settings</string>
 
 </resources>

@@ -53,6 +53,8 @@ public class RegisterDevice extends Activity {
         String major = intent.getStringExtra("major");
         String minor = intent.getStringExtra("minor");
 
+        Log.v(TAG,"major: " + major +" minor: " + minor);
+
         mIbeaconInfo = new iBeaconInfo(uuid,null,major,minor);
 
         final String hash = hashFunction(uuid,major,minor);
@@ -81,15 +83,14 @@ public class RegisterDevice extends Activity {
                         public void done(Object o, ParseException e) {
                             if (e == null) {
                                 // Got a response from cloud code
-                                //Toast.makeText(getBaseContext(),"clicked add and sent",Toast.LENGTH_SHORT).show();
                                 Log.v(TAG,o.toString());
                                 Log.v(TAG,hash);
                                 if(o.toString().equals("true")) {
                                     Log.v(TAG,"success");
                                     //  Save data to file
-                                    /*mIbeaconInfo.setNickname(nickname);
+                                    mIbeaconInfo.setNickname(nickname);
                                     mIbeaconInfo.setHash(subHash);
-                                    addDevice();*/
+                                    addDevice();
                                 } else {
                                     Toast.makeText(getBaseContext(),"Incorrect Password",Toast.LENGTH_SHORT).show();
                                 }
@@ -99,10 +100,6 @@ public class RegisterDevice extends Activity {
                             }
                         }
                     });
-                    //  Save data to file
-                    //mIbeaconInfo.setNickname(nickname);
-                    //mIbeaconInfo.setHash(subHash);
-                    //addDevice();
                 }
             }
         });
@@ -111,7 +108,6 @@ public class RegisterDevice extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.register_device, menu);
         return true;
@@ -161,50 +157,18 @@ public class RegisterDevice extends Activity {
         if(file.exists()) {
             //  Can add to the file
             try {
-                Toast.makeText(getBaseContext(), "Saving Device", Toast.LENGTH_SHORT).show();
                 jsonObject = new JSONObject(readFromFile());
-                String hash = mIbeaconInfo.getHash().substring(0,10);
-                if (jsonObject.has(hash)) {
-                    //	this device is already saved
-                    Toast.makeText(getBaseContext(), "Device is already saved", Toast.LENGTH_SHORT).show();
-                } else {
-                    JSONObject beaconJsonObject = new JSONObject();
-                    beaconJsonObject.put("major",mIbeaconInfo.getMajor());
-                    beaconJsonObject.put("minor",mIbeaconInfo.getMinor());
-                    beaconJsonObject.put("nickname",mIbeaconInfo.getNickname());
-                    beaconJsonObject.put("uuid", mIbeaconInfo.getUuid());
-                    beaconJsonObject.put("distance",mIbeaconInfo.getDistance());
-                    beaconJsonObject.put("hash",mIbeaconInfo.getHash());
-
-                    jsonObject.put(hash, beaconJsonObject);
-
-                    String saveBeaconInfo = jsonObject.toString();
-                    Log.v(TAG,"This is saved "+ saveBeaconInfo);
-                    FileOutputStream outputStream;
-                    try {
-                        outputStream = openFileOutput(filename, Context.MODE_PRIVATE);	//was append
-                        outputStream.write(saveBeaconInfo.getBytes());
-                        outputStream.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        Toast.makeText(getBaseContext(), "Failed to save", Toast.LENGTH_SHORT).show();
-                    }
-
-                }
-                //  After Save go to main page
-                Intent intent = new Intent(this, MainActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(intent);
-
-            } catch (JSONException e1) {
-                e1.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
+        }
+        String hash = mIbeaconInfo.getHash().substring(0,10);
+        if (jsonObject.has(hash)) {
+            //	this device is already saved
+            Toast.makeText(getBaseContext(), "Device is already saved", Toast.LENGTH_SHORT).show();
         } else {
-            //  Need to create a new file
-            Toast.makeText(getBaseContext(), "making new file", Toast.LENGTH_SHORT).show();
             JSONObject beaconJsonObject = new JSONObject();
             try {
-                //beaconJsonObject.put("uuid",mIbeaconInfo.getUuid());
                 beaconJsonObject.put("major",mIbeaconInfo.getMajor());
                 beaconJsonObject.put("minor",mIbeaconInfo.getMinor());
                 beaconJsonObject.put("nickname",mIbeaconInfo.getNickname());
@@ -212,29 +176,26 @@ public class RegisterDevice extends Activity {
                 beaconJsonObject.put("distance",mIbeaconInfo.getDistance());
                 beaconJsonObject.put("hash",mIbeaconInfo.getHash());
 
-                String hash = mIbeaconInfo.getHash().substring(0,10);
                 jsonObject.put(hash, beaconJsonObject);
-            } catch (JSONException e1) {
-                Log.e(TAG, "failed to put data into jsonObject" + e1.toString());
-            }
-
-            String saveBeaconInfo = jsonObject.toString();
-            Log.v(TAG,"This is saved "+ saveBeaconInfo);
-            FileOutputStream outputStream;
-            try {
-                outputStream = openFileOutput(filename, Context.MODE_PRIVATE);	//was append
-                outputStream.write(saveBeaconInfo.getBytes());
-                outputStream.close();
-            } catch (Exception e) {
+                String saveBeaconInfo = jsonObject.toString();
+                FileOutputStream outputStream;
+                try {
+                    outputStream = openFileOutput(filename, Context.MODE_PRIVATE);	//was append
+                    outputStream.write(saveBeaconInfo.getBytes());
+                    outputStream.close();
+                    Toast.makeText(getBaseContext(), "Saving Device", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(getBaseContext(), "Failed to save", Toast.LENGTH_SHORT).show();
+                }
+            } catch (JSONException e) {
                 e.printStackTrace();
-                Toast.makeText(getBaseContext(), "Failed to save", Toast.LENGTH_SHORT).show();
             }
-
-            //  After Save go to main page
-            Intent intent = new Intent(this, RangingMarkedActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            startActivity(intent);
         }
+        //  After Save go to main page
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
     }
 
     public void deleteFile() {

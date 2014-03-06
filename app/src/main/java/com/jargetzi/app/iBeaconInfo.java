@@ -10,6 +10,7 @@ public class iBeaconInfo {
     public String minor;
     public String nickname;
     public String hash;
+    public boolean active;
 
 
     public iBeaconInfo() {
@@ -58,5 +59,13 @@ public class iBeaconInfo {
 
     public void setHash(String hash) {
         this.hash = hash;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive() {
+        this.active = active;
     }
 }

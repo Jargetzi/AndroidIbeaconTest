@@ -2,6 +2,7 @@ package com.jargetzi.app;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -53,6 +54,13 @@ public class customListAdapter  extends ArrayAdapter<iBeaconInfo>{
         holder.distance.setText(info.distance);
         holder.major.setText(info.major);
         holder.minor.setText(info.minor);
+
+        if(info.getDistance().equals(context.getString(R.string.not_in_range_txt))) {
+            row.setBackgroundColor(Color.YELLOW);
+        } else {
+            row.setBackgroundColor(Color.TRANSPARENT);
+        }
+        row.invalidate();
 
         return row;
     }

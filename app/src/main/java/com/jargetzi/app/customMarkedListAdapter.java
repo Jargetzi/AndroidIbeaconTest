@@ -54,10 +54,17 @@ public class customMarkedListAdapter  extends ArrayAdapter<iBeaconInfo>{
 
         if(info.getDistance().equals(context.getString(R.string.not_in_range_txt))) {
             row.setBackgroundColor(Color.YELLOW);
-            row.invalidate();
+        } else {
+            row.setBackgroundColor(Color.TRANSPARENT);
         }
+        row.invalidate();
 
         return row;
+    }
+
+    public void refresh(List<iBeaconInfo> data) {
+        this.data = data;
+        notifyDataSetChanged();
     }
 
     static class iBeaconHolder {
